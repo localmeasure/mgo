@@ -922,7 +922,7 @@ func (s *S) TestAuthScramSha256URL(c *C) {
 	}
 	host := "localhost:40002"
 	c.Logf("Connecting to %s...", host)
-	session, err := mgo.Dial(fmt.Sprintf("root:rapadura@%s?authMechanism=SCRAM-SHA-1", host))
+	session, err := mgo.Dial(fmt.Sprintf("root:rapadura@%s?authMechanism=SCRAM-SHA-256", host))
 	c.Assert(err, IsNil)
 	defer session.Close()
 
