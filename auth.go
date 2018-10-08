@@ -318,7 +318,7 @@ func (socket *mongoSocket) loginSASL(cred Credential) error {
 		if err != nil {
 			return err
 		}
-		if done && res.Done {
+		if done {
 			socket.dropAuth(cred.Source)
 			socket.creds = append(socket.creds, cred)
 			break
@@ -344,11 +344,7 @@ func (socket *mongoSocket) loginSASL(cred Credential) error {
 		if err != nil {
 			return err
 		}
-		if done && res.Done {
-			socket.dropAuth(cred.Source)
-			socket.creds = append(socket.creds, cred)
-			break
-		}
+
 	}
 
 	return nil
