@@ -31,7 +31,6 @@
 package scram
 
 import (
-	"bytes"
 	"errors"
 
 	xdg "github.com/xdg-go/scram"
@@ -59,8 +58,6 @@ import (
 //    }
 //
 type Client struct {
-	out  bytes.Buffer
-	err  error
 	conv *xdg.ClientConversation
 }
 
@@ -97,48 +94,38 @@ func NewMethod(methodString string) (*Method, error) {
 //
 //    method, _ := scram.NewMethod("SCRAM-SHA-1")
 //
-//    client := scram.NewClient(method, user, pass)
+//    client, _ := scram.NewClient(method, user, pass)
 //
-func NewClient(method *Method, user, pass string) *Client {
-	var client *xdg.Client
-	var err error
+func NewClient(method *Method, user, pass string) (client *Client, err error) {
+	var internalClient *xdg.Client
 
 	switch method.method {
 	case ScramSha1:
-		client, err = xdg.SHA1.NewClient(user, pass, "")
+		internalClient, err = xdg.SHA1.NewClient(user, pass, "")
 	case ScramSha256:
-		client, err = xdg.SHA256.NewClient(user, pass, "")
+		internalClient, err = xdg.SHA256.NewClient(user, pass, "")
 	}
 
-	c := &Client{
-		conv: client.NewConversation(),
-		err:  err,
+	client = &Client{
+		conv: internalClient.NewConversation(),
 	}
-	c.out.Grow(256)
-	return c
+	return
 }
 
-// Out returns the data to be sent to the server in the current step.
-func (c *Client) Out() []byte {
-	if c.out.Len() == 0 {
-		return []byte{}
-	}
-	return c.out.Bytes()
+// Implement saslStepper (auth.go)
+type saslStepper interface {
+	Step(serverData []byte) (clientData []byte, done bool, err error)
+	Close()
 }
 
-// Err returns the error that occurred, or nil if there were no errors.
-func (c *Client) Err() error {
-	return c.err
-}
-
-// Step processes the incoming data from the server and makes the
-// next round of data for the server available via Client.Out.
-// Step returns false if there are no errors and more data is
-// still expected.
-func (c *Client) Step(in []byte) bool {
+// Step progresses the underlying SASL SCRAM process
+func (c *Client) Step(serverData []byte) (clientData []byte, done bool, err error) {
 	var resp string
-	c.out.Reset()
-	resp, c.err = c.conv.Step(string(in))
-	_, c.err = c.out.Write([]byte(resp))
-	return c.conv.Valid() || c.err != nil
+	resp, err = c.conv.Step(string(serverData))
+	clientData = []byte(resp)
+	done = c.conv.Done()
+	return
 }
+
+// Close is a no opp to fit the saslStepper interface
+func (c *Client) Close() {}

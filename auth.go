@@ -277,7 +277,10 @@ func (socket *mongoSocket) loginSASL(cred Credential) error {
 		// SCRAM is handled with github.com/xdg-go/scram.
 		var method *scram.Method
 		method, err = scram.NewMethod(cred.Mechanism)
-		sasl = saslNewScram(method, cred)
+		if err != nil {
+			return err
+		}
+		sasl, err = scram.NewClient(method, cred.Username, cred.Password)
 	} else if len(cred.ServiceHost) > 0 {
 		sasl, err = saslNew(cred, cred.ServiceHost)
 	} else {
@@ -348,25 +351,6 @@ func (socket *mongoSocket) loginSASL(cred Credential) error {
 	}
 
 	return nil
-}
-
-func saslNewScram(method *scram.Method, cred Credential) *saslScram {
-	credsum := md5.New()
-	credsum.Write([]byte(cred.Username + ":mongo:" + cred.Password))
-	client := scram.NewClient(method, cred.Username, hex.EncodeToString(credsum.Sum(nil)))
-	return &saslScram{cred: cred, client: client}
-}
-
-type saslScram struct {
-	cred   Credential
-	client *scram.Client
-}
-
-func (s *saslScram) Close() {}
-
-func (s *saslScram) Step(serverData []byte) (clientData []byte, done bool, err error) {
-	more := s.client.Step(serverData)
-	return s.client.Out(), !more, s.client.Err()
 }
 
 func (socket *mongoSocket) loginRun(db string, query, result interface{}, f func() error) error {
