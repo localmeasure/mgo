@@ -31,8 +31,8 @@ import (
 	"os"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	mgo "github.com/localmeasure/mgo"
+	"github.com/localmeasure/mgo/bson"
 	. "gopkg.in/check.v1"
 )
 
